@@ -1,0 +1,78 @@
+import bpy
+from mathutils import Euler
+
+# プロパティグループの定義
+class ViewRotationProperties(bpy.types.PropertyGroup):
+    def update_view(self, context):
+        euler = Euler((
+            self.rot_x * 3.14159265 / 180,
+            self.rot_y * 3.14159265 / 180,
+            self.rot_z * 3.14159265 / 180,
+        ), 'XYZ')
+        quat = euler.to_quaternion()
+
+        for area in context.screen.areas:
+            if area.type == 'VIEW_3D':
+                for space in area.spaces:
+                    if space.type == 'VIEW_3D':
+                        space.region_3d.view_rotation = quat
+
+    rot_x: bpy.props.FloatProperty(
+        name="X",
+        default=45.0,
+        min=-180.0,
+        max=180.0,
+        subtype='ANGLE',
+        update=update_view
+    )
+    rot_y: bpy.props.FloatProperty(
+        name="Y",
+        default=45.0,
+        min=-180.0,
+        max=180.0,
+        subtype='ANGLE',
+        update=update_view
+    )
+    rot_z: bpy.props.FloatProperty(
+        name="Z",
+        default=0.0,
+        min=-180.0,
+        max=180.0,
+        subtype='ANGLE',
+        update=update_view
+    )
+
+# パネル
+class VIEW3D_PT_CustomRotationPanel(bpy.types.Panel):
+    bl_label = "自由視点ビュー"
+    bl_space_type = 'VIEW_3D'
+    bl_region_type = 'UI'
+    bl_category = 'ViewTools'
+
+    def draw(self, context):
+        layout = self.layout
+        props = context.scene.view_rot_props
+
+        layout.label(text="視点回転（リアルタイム）:")
+        layout.prop(props, "rot_x", slider=True)
+        layout.prop(props, "rot_y", slider=True)
+        layout.prop(props, "rot_z", slider=True)
+
+# 登録・解除
+classes = [
+    ViewRotationProperties,
+    VIEW3D_PT_CustomRotationPanel
+]
+
+def register():
+    for cls in classes:
+        bpy.utils.register_class(cls)
+    bpy.types.Scene.view_rot_props = bpy.props.PointerProperty(type=ViewRotationProperties)
+
+def unregister():
+    for cls in reversed(classes):
+        bpy.utils.unregister_class(cls)
+    del bpy.types.Scene.view_rot_props
+
+if __name__ == "__main__":
+    register()
